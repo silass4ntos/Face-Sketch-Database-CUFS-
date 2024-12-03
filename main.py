@@ -10,64 +10,6 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc, f1_score
 from tensorflow.keras.models import load_model
 
-def listar_imgs(folder_path):
-    try:
-        file_list = os.listdir(folder_path)
-        return file_list
-    except FileNotFoundError:
-        print(f"Error: Diretorio nao encontrado {folder_path}")
-        return []
-
-def editar_imgs(entrada_imgs, saida_imgs, tamanho=(250, 200)):
-    for filename in os.listdir(entrada_imgs):
-        if filename.endswith(".jpg"):
-            img = Image.open(os.path.join(entrada_imgs, filename))
-            img = img.resize(tamanho)
-            img_array = np.array(img)
-            img_array = img_array / 255.0
-            img_processada = Image.fromarray((img_array * 255).astype(np.uint8))
-            path_img_processada = os.path.join(saida_imgs, filename)
-            img_processada.save(path_img_processada)
-            print(f"Processado: {filename}")
-
-def rotular_imgs(path, saida_imgs):
-    with open(saida_imgs, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(['nome_arquivo', 'rotulo'])
-        for filename in os.listdir(path):
-            if filename.endswith(".jpg"):
-                if filename.startswith("m"):
-                    rotulo = 0
-                elif filename.startswith("f"):
-                    rotulo = 1
-                else:
-                    continue
-                writer.writerow([filename, rotulo])
-                print(f"Arquivo: {filename}, Rótulo: {rotulo}")
-
-def carregar_dados(path, arquivo_saida):
-    imagens = []
-    rotulos = []
-    with open(arquivo_saida, mode='r') as file:
-        reader = csv.reader(file)
-        next(reader)
-        for row in reader:
-            nome_arquivo, rotulo = row
-            path_imagen = os.path.join(path, nome_arquivo)
-            imagem = Image.open(path_imagen)
-            img_array = np.array(imagem) / 255.0
-            imagens.append(img_array)
-            rotulos.append(int(rotulo))
-    return np.array(imagens), np.array(rotulos)
-
-img_path = "/content/drive/MyDrive/Colab Notebooks/CNN/photos"
-photos_refact = "/content/drive/MyDrive/Colab Notebooks/CNN/photosRefac"
-arquivo_csv = "/content/drive/MyDrive/Colab Notebooks/CNN/rotulos.csv"
-
-imagens, rotulos = carregar_dados(photos_refact, arquivo_csv)
-
-X_train, X_temp, y_train, y_temp = train_test_split(imagens, rotulos, test_size=0.5, random_state=23)
-X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.4, random_state=23)
 
 def criar_modelo():
     modelo = Sequential([
@@ -85,10 +27,79 @@ def criar_modelo():
     modelo.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return modelo
 
+#Verifica as imaginas no diretorio indicado
+def listar_imgs(folder_path):
+    try:
+        file_list = os.listdir(folder_path)
+        return file_list
+    except FileNotFoundError:
+        print(f"Error: Diretorio nao encontrado {folder_path}")
+        return []
+
+# Seleciona todos os arquivos .jpg e altera baseado nas condiçoes pedidas
+def editar_imgs(entrada_imgs, saida_imgs, tamanho=(250, 200)):
+    for filename in os.listdir(entrada_imgs):
+        if filename.endswith(".jpg"):
+            img = Image.open(os.path.join(entrada_imgs, filename))
+            img = img.resize(tamanho)
+            img_array = np.array(img)
+            img_array = img_array / 255.0
+            img_processada = Image.fromarray((img_array * 255).astype(np.uint8))
+            path_img_processada = os.path.join(saida_imgs, filename)
+            img_processada.save(path_img_processada)
+            print(f"Processado: {filename}")
+
+# Rotula todas as imgs e cria um .csv indicando o nome e o rotulo
+def rotular_imgs(path, saida_imgs):
+    with open(saida_imgs, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['nome_arquivo', 'rotulo'])
+        for filename in os.listdir(path):
+            if filename.endswith(".jpg"):
+                if filename.startswith("m"):
+                    rotulo = 0
+                elif filename.startswith("f"):
+                    rotulo = 1
+                else:
+                    continue
+                writer.writerow([filename, rotulo])
+                print(f"Arquivo: {filename}, Rótulo: {rotulo}")
+
+# Carrega as imgs ja editadas e o arquivo .csv
+def carregar_dados(path, arquivo_saida):
+    imagens = []
+    rotulos = []
+    with open(arquivo_saida, mode='r') as file:
+        reader = csv.reader(file)
+        next(reader)
+        for row in reader:
+            nome_arquivo, rotulo = row
+            path_imagen = os.path.join(path, nome_arquivo)
+            imagem = Image.open(path_imagen)
+            img_array = np.array(imagem) / 255.0
+            imagens.append(img_array)
+            rotulos.append(int(rotulo))
+    return np.array(imagens), np.array(rotulos)
+
+# Caminho para as fotos originais
+img_path = "/content/drive/MyDrive/Colab Notebooks/CNN/photos"
+# Caminho para as fotos alteradas
+photos_refact = "/content/drive/MyDrive/Colab Notebooks/CNN/photosRefac"
+# Caminho para o arquivo .csv com o rotulo de cada foto
+arquivo_csv = "/content/drive/MyDrive/Colab Notebooks/CNN/rotulos.csv"
+
+imagens, rotulos = carregar_dados(photos_refact, arquivo_csv)
+
+X_train, X_temp, y_train, y_temp = train_test_split(imagens, rotulos, test_size=0.5, random_state=23)
+X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.4, random_state=23)
+
+# Carregar o modelo salvo (nao utilizado)
+# modelo_carregado = load_model('/content/drive/MyDrive/Colab Notebooks/CNN/modelo_cnn.h5')
+
 modelo = criar_modelo()
 historico = modelo.fit(X_train, y_train, epochs=20, batch_size=32, validation_data=(X_val, y_val))
 
-# Salvar o modelo treinado
+# Salvar o modelo treinado (pode ser utilizado posteriormente)
 modelo.save('/content/drive/MyDrive/Colab Notebooks/CNN/modelo_cnn.h5')
 
 # Avaliar o modelo no conjunto de teste
@@ -148,5 +159,4 @@ plt.ylabel('Perda')
 plt.legend(['Treinamento', 'Validação'], loc='upper left')
 plt.show()
 
-# Carregar o modelo salvo
-modelo_carregado = load_model('/content/drive/MyDrive/Colab Notebooks/CNN/modelo_cnn.h5')
+
